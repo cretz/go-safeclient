@@ -24,12 +24,6 @@ type Client struct {
 	HttpClient *http.Client
 }
 
-type ClientResponse struct {
-	// May be empty
-	FileName string
-	Body     []byte
-}
-
 type APIError struct {
 	HttpResponse *http.Response
 }
@@ -39,7 +33,9 @@ func NewAPIError(resp *http.Response) *APIError {
 }
 
 func (a *APIError) Error() string {
-	return fmt.Sprintf("Server error, code: %v", a.HttpResponse.StatusCode)
+	defer a.HttpResponse.Body.Close()
+	bodyByts, _ := ioutil.ReadAll(a.HttpResponse.Body)
+	return fmt.Sprintf("Server error %v: %v", a.HttpResponse.StatusCode, string(bodyByts))
 }
 
 func NewClient(conf Conf) *Client {
@@ -57,6 +53,8 @@ type ClientRequest struct {
 	JSONBody     interface{}
 	Query        url.Values
 	DoNotEncrypt bool
+	JSONResponse interface{}
+	DoNotAuth bool
 }
 
 func (c *Client) Do(req *ClientRequest) (*http.Response, error) {
@@ -68,7 +66,7 @@ func (c *Client) Do(req *ClientRequest) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := c.sanitizeResponse(httpResp, !req.DoNotEncrypt); err != nil {
+	if err := c.sanitizeResponse(httpResp, !req.DoNotEncrypt, req.JSONResponse); err != nil {
 		return nil, err
 	}
 	return httpResp, err
@@ -79,7 +77,12 @@ func (c *Client) buildRequest(req *ClientRequest) (*http.Request, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Invalid launcher base URL: %v", err)
 	}
-	fullURL.Path = req.Path
+	// Need path escaping as given to us by the user
+	fullURL.Path, err = url.QueryUnescape(req.Path)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to unescape given path: %v", err)
+	}
+	fullURL.RawPath = req.Path
 	fullURL.RawQuery = req.Query.Encode()
 	httpReq := &http.Request{
 		Method: req.Method,
@@ -107,8 +110,8 @@ func (c *Client) buildRequest(req *ClientRequest) (*http.Request, error) {
 	}
 
 	// If there is a token, use it as the bearer token
-	if c.Conf.Token != "" {
-		httpReq.Header["Authorization"] = []string{"Bearer " + c.Conf.Token}
+	if c.Conf.Token != "" && !req.DoNotAuth {
+		httpReq.Header["authorization"] = []string{"Bearer " + c.Conf.Token}
 	}
 
 	// Encrypt the query string if necessary
@@ -119,8 +122,8 @@ func (c *Client) buildRequest(req *ClientRequest) (*http.Request, error) {
 	return httpReq, nil
 }
 
-func (c *Client) sanitizeResponse(resp *http.Response, decrypt bool) error {
-	if decrypt {
+func (c *Client) sanitizeResponse(resp *http.Response, decrypt bool, jsonResponse interface{}) error {
+	if decrypt && (resp.StatusCode == 200 || resp.StatusCode == 500) {
 		body := resp.Body
 		defer body.Close()
 		encryptedBase64d, err := ioutil.ReadAll(body)
@@ -128,9 +131,11 @@ func (c *Client) sanitizeResponse(resp *http.Response, decrypt bool) error {
 			return fmt.Errorf("Unable to read response: %v", err)
 		}
 		if len(encryptedBase64d) > 0 {
-			encrypted := []byte{}
-			if _, err := base64.StdEncoding.Decode(encrypted, encryptedBase64d); err != nil {
+			encrypted := make([]byte, base64.StdEncoding.DecodedLen(len(encryptedBase64d)))
+			if n, err := base64.StdEncoding.Decode(encrypted, encryptedBase64d); err != nil {
 				return fmt.Errorf("Unable to decode base64 HTTP response: %v", err)
+			} else {
+				encrypted = encrypted[:n]
 			}
 			decrypted, err := c.decrypt(encrypted)
 			if err != nil {
@@ -144,6 +149,21 @@ func (c *Client) sanitizeResponse(resp *http.Response, decrypt bool) error {
 	// We consider non-200 as a failure
 	if resp.StatusCode != 200 {
 		return NewAPIError(resp)
+	}
+	if jsonResponse != nil {
+		// Go ahead and take entire body and unmarshal it (and then put it back)
+		body := resp.Body
+		defer body.Close()
+		jsonByts, err := ioutil.ReadAll(body)
+		if err != nil {
+			return fmt.Errorf("Unable to read body: %v", err)
+		}
+		if len(jsonByts) > 0 {
+			if err = json.Unmarshal(jsonByts, jsonResponse); err != nil {
+				return fmt.Errorf("Unable to unmarshal JSON: %v", err)
+			}
+		}
+		resp.Body = ioutil.NopCloser(bytes.NewBuffer([]byte{}))
 	}
 	return nil
 }
@@ -165,8 +185,8 @@ func (c *Client) decrypt(in []byte) ([]byte, error) {
 	copy(nonce[:], c.Conf.Nonce)
 	var sharedKey [32]byte
 	copy(sharedKey[:], c.Conf.SharedKey)
-	out := []byte{}
-	if _, ok := secretbox.Open(out, in, &nonce, &sharedKey); !ok {
+	out, ok := secretbox.Open([]byte{}, in, &nonce, &sharedKey)
+	if !ok {
 		return nil, errors.New("Failed to decrypt")
 	}
 	return out, nil

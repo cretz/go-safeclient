@@ -21,6 +21,10 @@ var app = client.AuthApp{
 	ID:      "go-safeclient.cretz.github.com",
 	Version: "0.0.1",
 	Vendor:  "cretz",
+	//Name:    "Maidsafe Demo",
+	//ID:      "demo.maidsafe.net",
+	//Version: "0.2.1",
+	//Vendor:  "MaidSafe",
 }
 
 func init() {

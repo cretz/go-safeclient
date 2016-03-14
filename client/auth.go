@@ -2,11 +2,9 @@ package client
 
 import (
 	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/nacl/box"
-	"io/ioutil"
 )
 
 type AuthRequest struct {
@@ -51,28 +49,20 @@ func (a AuthRequest) Auth(client *Client) (AuthResult, error) {
 	}
 	// XXX: Have to have an empty permissions object sadly
 	withKey.Permissions = []string{}
+	authResp := &authResponse{}
 	req := &ClientRequest{
 		Path:         "/auth",
 		Method:       "POST",
 		JSONBody:     withKey,
 		DoNotEncrypt: true,
+		JSONResponse: authResp,
 	}
-	resp, err := client.Do(req)
-	if err != nil {
+	if _, err := client.Do(req); err != nil {
 		if v, ok := err.(*APIError); ok && v.HttpResponse.StatusCode == 401 {
 			return res, AuthDeniedError
 		} else {
 			return res, err
 		}
-	}
-	byts, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return res, fmt.Errorf("Unable to read response: %v", err)
-	}
-	// Decode the JSON and build result
-	authResp := &authResponse{}
-	if err := json.Unmarshal(byts, authResp); err != nil {
-		return res, fmt.Errorf("Failed to unmarshal auth result: %v", err)
 	}
 	// Build response from given key
 	res.Request = withKey
