@@ -1,17 +1,17 @@
 package client
 
 import (
-	"strings"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (c *Client) DNSNames() ([]string, error) {
 	ret := []string{}
 	req := &ClientRequest{
-		Path: "/dns",
-		Method: "GET",
+		Path:         "/dns",
+		Method:       "GET",
 		JSONResponse: &ret,
 	}
 	if _, err := c.Do(req); err != nil {
@@ -24,8 +24,8 @@ func (c *Client) DNSServices(name string) ([]string, error) {
 	ret := []string{}
 	req := &ClientRequest{
 		// XXX: we don't care about santizing this URL, the server should (what if name does start with slash?)
-		Path: "/dns/" + name,
-		Method: "GET",
+		Path:         "/dns/" + name,
+		Method:       "GET",
 		JSONResponse: &ret,
 	}
 	if _, err := c.Do(req); err != nil {
@@ -37,28 +37,28 @@ func (c *Client) DNSServices(name string) ([]string, error) {
 func (c *Client) DNSServiceDir(name, service string) (DirResponse, error) {
 	var resp DirResponse
 	req := &ClientRequest{
-		Path: "/dns/" + service + "/" + name + "/",
-		Method: "GET",
+		Path:         "/dns/" + service + "/" + name + "/",
+		Method:       "GET",
 		JSONResponse: &resp,
 		DoNotEncrypt: true,
-		DoNotAuth: true,
+		DoNotAuth:    true,
 	}
 	_, err := c.Do(req)
 	return resp, err
 }
 
 type DNSFile struct {
-	Info FileInfo
+	Info        FileInfo
 	ContentType string
-	Body io.ReadCloser
+	Body        io.ReadCloser
 }
 
 func (c *Client) DNSFile(name, service, path string) (*DNSFile, error) {
 	req := &ClientRequest{
-		Path: "/dns/" + service + "/" + name + "/" + strings.TrimLeft(path, "/"),
-		Method: "GET",
+		Path:         "/dns/" + service + "/" + name + "/" + strings.TrimLeft(path, "/"),
+		Method:       "GET",
 		DoNotEncrypt: true,
-		DoNotAuth: true,
+		DoNotAuth:    true,
 	}
 	resp, err := c.Do(req)
 	if err != nil {
@@ -66,15 +66,15 @@ func (c *Client) DNSFile(name, service, path string) (*DNSFile, error) {
 	}
 	return &DNSFile{
 		Info: FileInfo{
-			Name: resp.Header.Get("file-name"),
-			Size: maybeHeaderInt64(resp.Header, "file-size"),
-			CreatedOn: Time(maybeHeaderInt64(resp.Header, "file-created-time")),
+			Name:       resp.Header.Get("file-name"),
+			Size:       maybeHeaderInt64(resp.Header, "file-size"),
+			CreatedOn:  Time(maybeHeaderInt64(resp.Header, "file-created-time")),
 			ModifiedOn: Time(maybeHeaderInt64(resp.Header, "file-modified-time")),
 			// XXX: Ug, this can be "undefined"
 			Metadata: resp.Header.Get("file-metadata"),
 		},
 		ContentType: resp.Header.Get("Content-Type"),
-		Body: resp.Body,
+		Body:        resp.Body,
 	}, nil
 }
 

@@ -1,11 +1,11 @@
 package cmd
 
 import (
+	"errors"
+	"github.com/cretz/go-safeclient/client"
 	"github.com/spf13/cobra"
 	"log"
-	"errors"
 	"os"
-	"github.com/cretz/go-safeclient/client"
 )
 
 var lsShared bool

@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
+	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -33,9 +33,9 @@ var putCmd = &cobra.Command{
 		}
 		info := client.WriteFileInfo{
 			FilePath: args[0],
-			Shared: putShared,
+			Shared:   putShared,
 			Contents: input,
-			Offset: putOffset,
+			Offset:   putOffset,
 		}
 		if err = c.WriteFile(info); err != nil {
 			log.Fatalf("Failed to write file: %v", err)

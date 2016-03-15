@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
+	"github.com/spf13/cobra"
+	"log"
 )
 
 var modShared bool
@@ -17,7 +17,7 @@ var modCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return errors.New("One and only one argument allowed")
-		} else if (modName == "" && modMetadata == "") {
+		} else if modName == "" && modMetadata == "" {
 			return errors.New("Must provide at least name or metadata")
 		}
 		c, err := getClient()
@@ -26,8 +26,8 @@ var modCmd = &cobra.Command{
 		}
 		info := client.ChangeFileInfo{
 			FilePath: args[0],
-			Shared: modShared,
-			NewName: modName,
+			Shared:   modShared,
+			NewName:  modName,
 			Metadata: modMetadata,
 		}
 		if err = c.ChangeFile(info); err != nil {

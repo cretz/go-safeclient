@@ -1,11 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"github.com/spf13/cobra"
+	"io"
 	"log"
 	"os"
-	"io"
-	"errors"
 )
 
 var dnsFileOutFile = ""

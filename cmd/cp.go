@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
+	"github.com/spf13/cobra"
+	"log"
 )
 
 var cpShared bool
@@ -26,10 +26,10 @@ var cpCmd = &cobra.Command{
 			destShared = !cpShared
 		}
 		info := client.MoveFileInfo{
-			SrcPath: args[0],
-			SrcShared: cpShared,
-			DestPath: args[1],
-			DestShared: destShared,
+			SrcPath:      args[0],
+			SrcShared:    cpShared,
+			DestPath:     args[1],
+			DestShared:   destShared,
 			RetainSource: true,
 		}
 		if err = c.MoveFile(info); err != nil {

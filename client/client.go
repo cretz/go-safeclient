@@ -59,7 +59,7 @@ type ClientRequest struct {
 	Query        url.Values
 	DoNotEncrypt bool
 	JSONResponse interface{}
-	DoNotAuth bool
+	DoNotAuth    bool
 }
 
 func (c *Client) Do(req *ClientRequest) (*http.Response, error) {
@@ -133,7 +133,7 @@ func (c *Client) buildRequest(req *ClientRequest) (*http.Request, error) {
 	return httpReq, nil
 }
 
-var doNotDecryptResponses = map[int]string {
+var doNotDecryptResponses = map[int]string{
 	200: "OK",
 	202: "Accepted",
 	500: "Server Error",

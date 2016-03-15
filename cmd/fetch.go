@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
-	"os"
+	"github.com/spf13/cobra"
 	"io"
+	"log"
+	"os"
 )
 
 var fetchShared bool
@@ -27,9 +27,9 @@ var fetchCmd = &cobra.Command{
 		}
 		info := client.GetFileInfo{
 			FilePath: args[0],
-			Shared: fetchShared,
-			Offset: fetchOffset,
-			Length: fetchLength,
+			Shared:   fetchShared,
+			Offset:   fetchOffset,
+			Length:   fetchLength,
 		}
 		rc, err := c.GetFile(info)
 		if err != nil {

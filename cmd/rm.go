@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
+	"github.com/spf13/cobra"
+	"log"
 )
 
 var rmShared bool
@@ -22,7 +22,7 @@ var rmCmd = &cobra.Command{
 		}
 		info := client.DeleteFileInfo{
 			FilePath: args[0],
-			Shared: rmShared,
+			Shared:   rmShared,
 		}
 		if err = c.DeleteFile(info); err != nil {
 			log.Fatalf("Failed to delete file: %v", err)

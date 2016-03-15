@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
-	"errors"
 )
 
 var dnsServiceDirCmd = &cobra.Command{

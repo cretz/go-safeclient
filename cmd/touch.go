@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
+	"github.com/spf13/cobra"
+	"log"
 )
 
 var touchShared bool
@@ -23,7 +23,7 @@ var touchCmd = &cobra.Command{
 		}
 		info := client.CreateFileInfo{
 			FilePath: args[0],
-			Shared: touchShared,
+			Shared:   touchShared,
 			Metadata: touchMetadata,
 		}
 		if err = c.CreateFile(info); err != nil {

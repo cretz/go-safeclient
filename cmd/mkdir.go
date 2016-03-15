@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"log"
 	"errors"
 	"github.com/cretz/go-safeclient/client"
+	"github.com/spf13/cobra"
+	"log"
 )
 
 var mkdirPrivate bool
@@ -24,11 +24,11 @@ var mkdirCmd = &cobra.Command{
 			log.Fatalf("Unable to obtain client: %v", err)
 		}
 		info := client.CreateDirInfo{
-			DirPath: args[0],
-			Private: mkdirPrivate,
+			DirPath:   args[0],
+			Private:   mkdirPrivate,
 			Versioned: mkdirVersioned,
-			Metadata: mkdirMetadata,
-			Shared: mkdirShared,
+			Metadata:  mkdirMetadata,
+			Shared:    mkdirShared,
 		}
 		if err = c.CreateDir(info); err != nil {
 			log.Fatalf("Failed to create dir: %v", err)

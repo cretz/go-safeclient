@@ -1,26 +1,26 @@
 package client
 
 import (
-"net/url"
-"strconv"
-"errors"
+	"bytes"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"fmt"
-	"encoding/base64"
-	"bytes"
+	"net/url"
+	"strconv"
 )
 
 type CreateFileInfo struct {
 	FilePath string `json:"filePath"`
-	Shared bool `json:"isPathShared"`
+	Shared   bool   `json:"isPathShared"`
 	Metadata string `json:"metadata"`
 }
 
 func (c *Client) CreateFile(cf CreateFileInfo) error {
 	req := &ClientRequest{
-		Path: "/nfs/file",
-		Method: "POST",
+		Path:     "/nfs/file",
+		Method:   "POST",
 		JSONBody: cf,
 	}
 	_, err := c.Do(req)
@@ -28,18 +28,18 @@ func (c *Client) CreateFile(cf CreateFileInfo) error {
 }
 
 type MoveFileInfo struct {
-	SrcPath string `json:"srcPath"`
-	SrcShared bool `json:"isSrcPathShared"`
-	DestPath string `json:"destPath"`
-	DestShared bool `json:"isDestPathShared"`
-	RetainSource bool `json:"retainSource"`
+	SrcPath      string `json:"srcPath"`
+	SrcShared    bool   `json:"isSrcPathShared"`
+	DestPath     string `json:"destPath"`
+	DestShared   bool   `json:"isDestPathShared"`
+	RetainSource bool   `json:"retainSource"`
 }
 
 func (c *Client) MoveFile(mf MoveFileInfo) error {
 	// TODO: appears broken
 	req := &ClientRequest{
-		Path: "/nfs/movefile",
-		Method: "POST",
+		Path:     "/nfs/movefile",
+		Method:   "POST",
 		JSONBody: mf,
 	}
 	_, err := c.Do(req)
@@ -48,12 +48,12 @@ func (c *Client) MoveFile(mf MoveFileInfo) error {
 
 type DeleteFileInfo struct {
 	FilePath string
-	Shared bool
+	Shared   bool
 }
 
 func (c *Client) DeleteFile(df DeleteFileInfo) error {
 	req := &ClientRequest{
-		Path: "/nfs/file/" + url.QueryEscape(df.FilePath) + "/" + strconv.FormatBool(df.Shared),
+		Path:   "/nfs/file/" + url.QueryEscape(df.FilePath) + "/" + strconv.FormatBool(df.Shared),
 		Method: "DELETE",
 	}
 	_, err := c.Do(req)
@@ -62,8 +62,8 @@ func (c *Client) DeleteFile(df DeleteFileInfo) error {
 
 type ChangeFileInfo struct {
 	FilePath string `json:"-"`
-	Shared bool `json:"-"`
-	NewName string `json:"name,omitempty"`
+	Shared   bool   `json:"-"`
+	NewName  string `json:"name,omitempty"`
 	Metadata string `json:"metadata,omitempty"`
 }
 
@@ -74,8 +74,8 @@ func (c *Client) ChangeFile(cf ChangeFileInfo) error {
 		return errors.New("Must provide name or metadata")
 	}
 	req := &ClientRequest{
-		Path: "/nfs/file/metadata/" + url.QueryEscape(cf.FilePath) + "/" + strconv.FormatBool(cf.Shared),
-		Method: "PUT",
+		Path:     "/nfs/file/metadata/" + url.QueryEscape(cf.FilePath) + "/" + strconv.FormatBool(cf.Shared),
+		Method:   "PUT",
 		JSONBody: cf,
 	}
 	_, err := c.Do(req)
@@ -84,9 +84,9 @@ func (c *Client) ChangeFile(cf ChangeFileInfo) error {
 
 type WriteFileInfo struct {
 	FilePath string
-	Shared bool
+	Shared   bool
 	Contents io.ReadCloser
-	Offset int64
+	Offset   int64
 }
 
 func (c *Client) WriteFile(wf WriteFileInfo) error {
@@ -97,10 +97,10 @@ func (c *Client) WriteFile(wf WriteFileInfo) error {
 		return fmt.Errorf("Unable to read contents: %v", err)
 	}
 	req := &ClientRequest{
-		Path: "/nfs/file/" + url.QueryEscape(wf.FilePath) + "/" + strconv.FormatBool(wf.Shared),
-		Method: "PUT",
+		Path:    "/nfs/file/" + url.QueryEscape(wf.FilePath) + "/" + strconv.FormatBool(wf.Shared),
+		Method:  "PUT",
 		RawBody: []byte(base64.StdEncoding.EncodeToString(byts)),
-		Query: map[string][]string{"offset": []string{strconv.FormatInt(wf.Offset, 10)}},
+		Query:   map[string][]string{"offset": []string{strconv.FormatInt(wf.Offset, 10)}},
 	}
 	_, err = c.Do(req)
 	return err
@@ -108,22 +108,22 @@ func (c *Client) WriteFile(wf WriteFileInfo) error {
 
 type GetFileInfo struct {
 	FilePath string
-	Shared bool
-	Offset int64
+	Shared   bool
+	Offset   int64
 	// Ignored if 0
 	Length int64
 }
 
 func (c *Client) GetFile(gf GetFileInfo) (io.ReadCloser, error) {
 	// TODO: support chunking instead of all in mem
-	query :=  map[string][]string{"offset": []string{strconv.FormatInt(gf.Offset, 10)}}
-	if (gf.Length > 0) {
+	query := map[string][]string{"offset": []string{strconv.FormatInt(gf.Offset, 10)}}
+	if gf.Length > 0 {
 		query["length"] = []string{strconv.FormatInt(gf.Length, 10)}
 	}
 	req := &ClientRequest{
-		Path: "/nfs/file/" + url.QueryEscape(gf.FilePath) + "/" + strconv.FormatBool(gf.Shared),
+		Path:   "/nfs/file/" + url.QueryEscape(gf.FilePath) + "/" + strconv.FormatBool(gf.Shared),
 		Method: "GET",
-		Query: query,
+		Query:  query,
 	}
 	resp, err := c.Do(req)
 	if err != nil {

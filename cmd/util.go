@@ -4,9 +4,9 @@ import (
 	"github.com/cretz/go-safeclient/client"
 	"github.com/olekukonko/tablewriter"
 	"io"
-	"time"
-	"strconv"
 	"sort"
+	"strconv"
+	"time"
 )
 
 func writeDirResponseTable(writer io.Writer, dir client.DirResponse) {
