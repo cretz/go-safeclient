@@ -8,7 +8,7 @@ import (
 )
 
 var dnsNamesCmd = &cobra.Command{
-	Use:   "names",
+	Use:   "dnsnames",
 	Short: "Get all DNS names",
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := getClient()
@@ -26,5 +26,5 @@ var dnsNamesCmd = &cobra.Command{
 }
 
 func init() {
-	dnsCmd.AddCommand(dnsNamesCmd)
+	RootCmd.AddCommand(dnsNamesCmd)
 }

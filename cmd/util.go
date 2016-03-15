@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 	"strconv"
+	"sort"
 )
 
 func writeDirResponseTable(writer io.Writer, dir client.DirResponse) {
@@ -17,10 +18,13 @@ func writeDirResponseTable(writer io.Writer, dir client.DirResponse) {
 	table.SetAutoFormatHeaders(false)
 	table.Append([]string{"./", "",
 		dir.Info.CreatedOn.Time().Format(time.RFC822), dir.Info.ModifiedOn.Time().Format(time.RFC822)})
+	// Sort the things first
+	sort.Sort(dir.SubDirs)
 	for _, sub := range dir.SubDirs {
 		table.Append([]string{sub.Name + "/", "",
 			sub.CreatedOn.Time().Format(time.RFC822), sub.ModifiedOn.Time().Format(time.RFC822)})
 	}
+	sort.Sort(dir.Files)
 	for _, file := range dir.Files {
 		table.Append([]string{file.Name, strconv.FormatInt(file.Size, 10),
 			file.CreatedOn.Time().Format(time.RFC822), file.ModifiedOn.Time().Format(time.RFC822)})

@@ -4,14 +4,15 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"errors"
 )
 
 var dnsServiceDirCmd = &cobra.Command{
-	Use:   "servicedir [dns name] [dns service]",
+	Use:   "dnsservicedir [dns name] [dns service]",
 	Short: "Get DNS service dir for the given name and service",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
-			log.Fatal("Must have exactly two arguments for DNS name and service")
+			return errors.New("Must have exactly two arguments for DNS name and service")
 		}
 		c, err := getClient()
 		if err != nil {
@@ -22,9 +23,10 @@ var dnsServiceDirCmd = &cobra.Command{
 			log.Fatalf("Unable to get dir: %v", err)
 		}
 		writeDirResponseTable(os.Stdout, dir)
+		return nil
 	},
 }
 
 func init() {
-	dnsCmd.AddCommand(dnsServiceDirCmd)
+	RootCmd.AddCommand(dnsServiceDirCmd)
 }

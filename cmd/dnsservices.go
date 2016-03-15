@@ -5,14 +5,15 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"strings"
+	"errors"
 )
 
 var dnsServicesCmd = &cobra.Command{
-	Use:   "services [dns name]",
+	Use:   "dnsservices [dns name]",
 	Short: "Get all DNS services for the given name",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			log.Fatal("One argument and only one argument for name required")
+			errors.New("One argument and only one argument for name required")
 		}
 		c, err := getClient()
 		if err != nil {
@@ -25,9 +26,10 @@ var dnsServicesCmd = &cobra.Command{
 		if len(services) > 0 {
 			fmt.Print(strings.Join(services, "\n") + "\n")
 		}
+		return nil
 	},
 }
 
 func init() {
-	dnsCmd.AddCommand(dnsServicesCmd)
+	RootCmd.AddCommand(dnsServicesCmd)
 }

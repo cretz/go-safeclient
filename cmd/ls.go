@@ -1,9 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"log"
+	"errors"
+	"os"
+	"github.com/cretz/go-safeclient/client"
 )
 
 var lsShared bool
@@ -11,19 +13,21 @@ var lsShared bool
 var lsCmd = &cobra.Command{
 	Use:   "ls [dir]",
 	Short: "Fetch directory information",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			log.Fatalf("One and only one argument allowed")
+			return errors.New("One and only one argument allowed")
 		}
 		c, err := getClient()
 		if err != nil {
 			log.Fatalf("Unable to obtain client: %v", err)
 		}
-		err = c.GetDir(args[0], lsShared)
+		info := client.GetDirInfo{DirPath: args[0], Shared: lsShared}
+		dir, err := c.GetDir(info)
 		if err != nil {
-			log.Fatalf("NO: %v", err)
+			log.Fatalf("Failed to list dir: %v", err)
 		}
-		fmt.Println("Ping successful")
+		writeDirResponseTable(os.Stdout, dir)
+		return nil
 	},
 }
 

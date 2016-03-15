@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Conf struct {
@@ -33,8 +34,11 @@ func NewAPIError(resp *http.Response) *APIError {
 }
 
 func (a *APIError) Error() string {
-	defer a.HttpResponse.Body.Close()
+	body := a.HttpResponse.Body
+	defer body.Close()
 	bodyByts, _ := ioutil.ReadAll(a.HttpResponse.Body)
+	// Put the body back if they want to use it
+	a.HttpResponse.Body = ioutil.NopCloser(bytes.NewReader(bodyByts))
 	return fmt.Sprintf("Server error %v: %v", a.HttpResponse.StatusCode, string(bodyByts))
 }
 
@@ -51,6 +55,7 @@ type ClientRequest struct {
 	Path         string
 	Method       string
 	JSONBody     interface{}
+	RawBody      []byte
 	Query        url.Values
 	DoNotEncrypt bool
 	JSONResponse interface{}
@@ -90,21 +95,27 @@ func (c *Client) buildRequest(req *ClientRequest) (*http.Request, error) {
 		Header: map[string][]string{},
 	}
 
-	// If there is a body, json marshal it
+	// If there is a body, handle it
 	if req.JSONBody != nil {
-		byts, err := json.Marshal(req.JSONBody)
+		req.RawBody, err = json.Marshal(req.JSONBody)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to JSON marshal body: %v", err)
 		}
+	}
+	if req.RawBody != nil {
 		// Encrypt if necessary
 		if req.DoNotEncrypt {
-			httpReq.Body = ioutil.NopCloser(bytes.NewBuffer(byts))
-			httpReq.ContentLength = int64(len(byts))
-			httpReq.Header["Content-Type"] = []string{"application/json"}
+			httpReq.Body = ioutil.NopCloser(bytes.NewReader(req.RawBody))
+			httpReq.ContentLength = int64(len(req.RawBody))
+			if req.JSONBody != nil {
+				httpReq.Header["Content-Type"] = []string{"application/json"}
+			} else {
+				httpReq.Header["Content-Type"] = []string{"text/plain"}
+			}
 		} else {
-			out := c.encrypt(byts)
-			httpReq.Body = ioutil.NopCloser(bytes.NewBuffer(out))
-			httpReq.ContentLength = int64(len(out))
+			encrypted := base64.StdEncoding.EncodeToString(c.encrypt(req.RawBody))
+			httpReq.Body = ioutil.NopCloser(strings.NewReader(encrypted))
+			httpReq.ContentLength = int64(len(encrypted))
 			httpReq.Header["Content-Type"] = []string{"text/plain"}
 		}
 	}
@@ -122,32 +133,42 @@ func (c *Client) buildRequest(req *ClientRequest) (*http.Request, error) {
 	return httpReq, nil
 }
 
+var doNotDecryptResponses = map[int]string {
+	200: "OK",
+	202: "Accepted",
+	500: "Server Error",
+}
+
 func (c *Client) sanitizeResponse(resp *http.Response, decrypt bool, jsonResponse interface{}) error {
-	if decrypt && (resp.StatusCode == 200 || resp.StatusCode == 500) {
+	if decrypt {
 		body := resp.Body
 		defer body.Close()
 		encryptedBase64d, err := ioutil.ReadAll(body)
 		if err != nil {
 			return fmt.Errorf("Unable to read response: %v", err)
 		}
-		if len(encryptedBase64d) > 0 {
+		// As a special case, there can be some values which we don't mess with
+		if v, _ := doNotDecryptResponses[resp.StatusCode]; string(encryptedBase64d) == v {
+			resp.Body = ioutil.NopCloser(bytes.NewReader(encryptedBase64d))
+		} else if len(encryptedBase64d) > 0 {
 			encrypted := make([]byte, base64.StdEncoding.DecodedLen(len(encryptedBase64d)))
 			if n, err := base64.StdEncoding.Decode(encrypted, encryptedBase64d); err != nil {
-				return fmt.Errorf("Unable to decode base64 HTTP response: %v", err)
+				// When we can't base 64 decode it, we just fall back to the normal
+				resp.Body = ioutil.NopCloser(bytes.NewReader(encryptedBase64d))
 			} else {
 				encrypted = encrypted[:n]
+				decrypted, err := c.decrypt(encrypted)
+				if err != nil {
+					return err
+				}
+				resp.Body = ioutil.NopCloser(bytes.NewReader(decrypted))
 			}
-			decrypted, err := c.decrypt(encrypted)
-			if err != nil {
-				return err
-			}
-			resp.Body = ioutil.NopCloser(bytes.NewBuffer(decrypted))
 		} else {
-			resp.Body = ioutil.NopCloser(bytes.NewBuffer([]byte{}))
+			resp.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))
 		}
 	}
 	// We consider non-200 as a failure
-	if resp.StatusCode != 200 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return NewAPIError(resp)
 	}
 	if jsonResponse != nil {
@@ -163,21 +184,17 @@ func (c *Client) sanitizeResponse(resp *http.Response, decrypt bool, jsonRespons
 				return fmt.Errorf("Unable to unmarshal JSON: %v", err)
 			}
 		}
-		resp.Body = ioutil.NopCloser(bytes.NewBuffer([]byte{}))
+		resp.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))
 	}
 	return nil
 }
 
 func (c *Client) encrypt(in []byte) []byte {
 	var nonce [24]byte
-	// TODO: This nonce is suppose to change regularly! Ask maidsafe devs
-	// why the demo app's isn't
 	copy(nonce[:], c.Conf.Nonce)
 	var sharedKey [32]byte
 	copy(sharedKey[:], c.Conf.SharedKey)
-	out := []byte{}
-	secretbox.Seal(out, in, &nonce, &sharedKey)
-	return out
+	return secretbox.Seal([]byte{}, in, &nonce, &sharedKey)
 }
 
 func (c *Client) decrypt(in []byte) ([]byte, error) {
