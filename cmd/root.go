@@ -6,17 +6,20 @@ import (
 	"github.com/cretz/go-safeclient/client"
 	"github.com/spf13/cobra"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
+// RootCmd is the root command that the CLI runs
 var RootCmd = &cobra.Command{
 	Use:   "go-safeclient",
 	Short: "go-safeclient is a simple app that shows how to do simple things with the safe launcher",
 }
 
 var cfgFile = ""
+var verbose = false
 
-var app = client.AuthApp{
+var app = client.AuthAppInfo{
 	Name:    "SAFE Client CLI",
 	ID:      "go-safeclient.cretz.github.com",
 	Version: "0.0.1",
@@ -28,7 +31,8 @@ var app = client.AuthApp{
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "conf.json", "config file")
+	RootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "conf.json", "config file")
+	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "show debug output")
 }
 
 func getClient() (*client.Client, error) {
@@ -46,18 +50,22 @@ func getClient() (*client.Client, error) {
 	}
 
 	// Create the client and ensure it is authed
-	client := client.NewClient(conf)
-	if err := client.EnsureAuthed(app); err != nil {
+	c := client.NewClient(conf)
+	if verbose {
+		c.Logger = log.New(os.Stderr, "", log.LstdFlags)
+	}
+	authInfo := client.AuthInfo{App: app, Permissions: []string{client.AuthPermSafeDriveAccess}}
+	if err := c.EnsureAuthed(authInfo); err != nil {
 		return nil, err
 	}
 
 	// Persist the config
-	persistBytes, err := json.Marshal(client.Conf)
+	persistBytes, err := json.Marshal(c.Conf)
 	if err != nil {
 		return nil, err
 	}
 	if err := ioutil.WriteFile(cfgFile, persistBytes, 600); err != nil {
 		return nil, fmt.Errorf("Unable to write config at %v: %v", cfgFile, err)
 	}
-	return client, nil
+	return c, nil
 }

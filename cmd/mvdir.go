@@ -11,8 +11,9 @@ var mvdirShared bool
 var mvdirDestChangeShared bool
 
 var mvdirCmd = &cobra.Command{
-	Use:   "mvdir [src dir] [dest base dir]",
-	Short: "Move directory",
+	Use: "mvdir [src dir] [dest base dir]",
+	// TODO: https://maidsafe.atlassian.net/browse/CS-60
+	Short: "Move directory [NOT YET WORKING]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
 			return errors.New("Exactly two arguments required for source and destination")

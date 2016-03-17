@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"log"
@@ -10,7 +11,10 @@ import (
 var dnsNamesCmd = &cobra.Command{
 	Use:   "dnsnames",
 	Short: "Get all DNS names",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return errors.New("No arguments expected for this command")
+		}
 		c, err := getClient()
 		if err != nil {
 			log.Fatalf("Unable to get client: %v", err)
@@ -22,6 +26,7 @@ var dnsNamesCmd = &cobra.Command{
 		if len(names) > 0 {
 			fmt.Print(strings.Join(names, "\n") + "\n")
 		}
+		return nil
 	},
 }
 

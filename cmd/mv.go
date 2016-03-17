@@ -11,8 +11,9 @@ var mvShared bool
 var mvDestChangeShared bool
 
 var mvCmd = &cobra.Command{
-	Use:   "mv [src file] [dest dir]",
-	Short: "Move file",
+	Use: "mv [src file] [dest dir]",
+	// TODO: https://maidsafe.atlassian.net/browse/CS-60
+	Short: "Move file [NOT YET WORKING]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
 			return errors.New("Exactly two arguments required for source and destination")

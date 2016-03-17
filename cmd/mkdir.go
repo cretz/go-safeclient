@@ -40,7 +40,7 @@ var mkdirCmd = &cobra.Command{
 func init() {
 	mkdirCmd.Flags().BoolVarP(&mkdirPrivate, "private", "p", false, "Whether the directory is private")
 	mkdirCmd.Flags().BoolVarP(&mkdirShared, "shared", "s", false, "Use shared area for user/app")
-	mkdirCmd.Flags().BoolVarP(&mkdirVersioned, "versioned", "v", false, "Whether directory is versioned")
+	mkdirCmd.Flags().BoolVar(&mkdirVersioned, "versioned", false, "Whether directory is versioned")
 	mkdirCmd.Flags().StringVarP(&mkdirMetadata, "metadata", "m", "", "Metadata to store with the directory")
 	RootCmd.AddCommand(mkdirCmd)
 }

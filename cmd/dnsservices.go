@@ -13,7 +13,7 @@ var dnsServicesCmd = &cobra.Command{
 	Short: "Get all DNS services for the given name",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			errors.New("One argument and only one argument for name required")
+			return errors.New("One argument and only one argument for name required")
 		}
 		c, err := getClient()
 		if err != nil {

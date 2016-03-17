@@ -11,8 +11,9 @@ var cpdirShared bool
 var cpdirDestChangeShared bool
 
 var cpdirCmd = &cobra.Command{
-	Use:   "cpdir [src dir] [dest dir]",
-	Short: "Copy directory",
+	Use: "cpdir [src dir] [dest dir]",
+	// TODO: https://maidsafe.atlassian.net/browse/CS-60
+	Short: "Copy directory [NOT YET WORKING]",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 2 {
 			return errors.New("Exactly two arguments required for source and destination")

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"github.com/cretz/go-safeclient/client"
 	"github.com/spf13/cobra"
 	"io"
 	"log"
@@ -9,6 +10,8 @@ import (
 )
 
 var dnsFileOutFile = ""
+var dnsFileOffset int64
+var dnsFileLength int64
 
 var dnsFileCmd = &cobra.Command{
 	Use:   "dnsfile [dns name] [dns service] [file path]",
@@ -21,7 +24,14 @@ var dnsFileCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Unable to get client: %v", err)
 		}
-		file, err := c.DNSFile(args[0], args[1], args[2])
+		info := client.DNSFileInfo{
+			Name:     args[0],
+			Service:  args[1],
+			FilePath: args[2],
+			Offset:   dnsFileOffset,
+			Length:   dnsFileLength,
+		}
+		file, err := c.DNSFile(info)
 		if err != nil {
 			log.Fatalf("Unable to get file: %v", err)
 		}
@@ -41,6 +51,8 @@ var dnsFileCmd = &cobra.Command{
 }
 
 func init() {
-	dnsFileCmd.Flags().StringVarP(&dnsFileOutFile, "outfile", "o", "", "Output to file instead of stdout")
+	dnsFileCmd.Flags().StringVarP(&dnsFileOutFile, "file", "f", "", "Output to file instead of stdout")
+	dnsFileCmd.Flags().Int64VarP(&dnsFileOffset, "offset", "o", 0, "Offset to start writing from")
+	dnsFileCmd.Flags().Int64VarP(&dnsFileLength, "length", "l", 0, "Amount of bytes to read")
 	RootCmd.AddCommand(dnsFileCmd)
 }

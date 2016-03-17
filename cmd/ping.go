@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"log"
@@ -9,7 +10,10 @@ import (
 var pingCmd = &cobra.Command{
 	Use:   "ping",
 	Short: "Do simple ping to make sure app is registered",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return errors.New("No arguments expected for this command")
+		}
 		if c, err := getClient(); err != nil {
 			log.Fatalf("Ping failed: %v", err)
 		} else if ok, validErr := c.IsValidToken(); validErr != nil {
@@ -18,6 +22,7 @@ var pingCmd = &cobra.Command{
 			log.Fatalf("Ping failed: Invalid token")
 		}
 		fmt.Println("Ping successful")
+		return nil
 	},
 }
 

@@ -2,21 +2,31 @@ package client
 
 import "time"
 
+// Time is a representation of SAFE time (milliseconds since epoch)
 type Time int64
 
+// Time returns the Go time from the SAFE time
 func (t Time) Time() time.Time {
 	return time.Unix(0, int64(t)*int64(time.Millisecond))
 }
 
+// Files is a collection of files that implements sort.Interface
 type Files []FileInfo
+
+// Dirs is a collection of directories that implements sort.Interface
 type Dirs []DirInfo
 
+// DirResponse is a response from directory commands for a Client
 type DirResponse struct {
-	Info    DirInfo `json:"info"`
-	Files   Files   `json:"files"`
-	SubDirs Dirs    `json:"subDirectories"`
+	// Info about the directory requested
+	Info DirInfo `json:"info"`
+	// All files inside the directory
+	Files Files `json:"files"`
+	// All sub directories in the directory
+	SubDirs Dirs `json:"subDirectories"`
 }
 
+// DirInfo is information about a single directory
 type DirInfo struct {
 	Name       string `json:"name"`
 	Private    bool   `json:"isPrivate"`
@@ -26,6 +36,7 @@ type DirInfo struct {
 	Metadata   string `json:"metadata"`
 }
 
+// FileInfo is information about a single directory
 type FileInfo struct {
 	Name       string `json:"name"`
 	Size       int64  `json:"size"`

@@ -7,33 +7,59 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-type AuthRequest struct {
-	App         AuthApp  `json:"app"`
+// AuthInfo is used by Client.Auth and Client.EnsureAuthed to authenticate an app
+type AuthInfo struct {
+	// This is the required app information
+	App AuthAppInfo `json:"app"`
+	// Set of permissions that this app will register with. See AuthPerm* constants.
 	Permissions []string `json:"permissions"`
-	PublicKey   []byte   `json:"publicKey"`
-	PrivateKey  []byte   `json:"-"`
-	Nonce       []byte   `json:"nonce"`
+	// The public key to use when authorizing. Leave blank to generate at runtime.
+	PublicKey []byte `json:"publicKey"`
+	// The private key to use when authorizing. Leave blank to generate at runtime.
+	PrivateKey []byte `json:"-"`
+	// The nonce to use when authorizing. Leave blank to generate at runtime.
+	Nonce []byte `json:"nonce"`
 }
 
-type AuthApp struct {
-	Name    string `json:"name"`
-	ID      string `json:"id"`
+// AuthAppInfo is the app identification detail
+type AuthAppInfo struct {
+	// The name of the app that will appear in the SAFE launcher
+	Name string `json:"name"`
+	// The ID of the app
+	ID string `json:"id"`
+	// The app version
 	Version string `json:"version"`
-	Vendor  string `json:"vendor"`
+	// The app vendor name
+	Vendor string `json:"vendor"`
 }
 
+// AuthResult is the result of a successful authentication request
 type AuthResult struct {
-	Request   AuthRequest
-	Token     string
+	// The original request
+	Request AuthInfo
+	// The JSON web token for this app to use
+	Token string
+	// The shared key to use when encrypting/decrypting to/from the SAFE launcher
 	SharedKey []byte
-	Nonce     []byte
+	// The nonce to use when encrypting/decrypting to/from the SAFE launcher
+	Nonce []byte
 }
 
-var AuthDeniedError = errors.New("Auth denied")
+// ErrAuthDenied is the error returned when the user denied access to the application during Client.Auth and
+// Client.EnsureAuthed
+var ErrAuthDenied = errors.New("Auth denied")
 
-func (a AuthRequest) Auth(client *Client) (AuthResult, error) {
+const (
+	// AuthPermSafeDriveAccess is a permission to have access to the shared SAFE drive
+	AuthPermSafeDriveAccess = "SAFE_DRIVE_ACCESS"
+)
+
+// Auth authenticates with the SAFE launcher which prompts the user to accept it. If the AuthInfo.PublicKey is not
+// provided, it will be generated automatically along with the PrivateKey and Nonce. See
+// https://maidsafe.readme.io/docs/auth for more info.
+func (c *Client) Auth(ai AuthInfo) (AuthResult, error) {
 	res := AuthResult{}
-	withKey := a
+	withKey := ai
 	if len(withKey.PublicKey) == 0 {
 		// Go ahead and create a key here for our use
 		pubKey, privKey, err := box.GenerateKey(rand.Reader)
@@ -48,21 +74,22 @@ func (a AuthRequest) Auth(client *Client) (AuthResult, error) {
 		}
 	}
 	// XXX: Have to have an empty permissions object sadly
-	withKey.Permissions = []string{}
+	if withKey.Permissions == nil {
+		withKey.Permissions = []string{}
+	}
 	authResp := &authResponse{}
-	req := &ClientRequest{
+	req := &Request{
 		Path:         "/auth",
 		Method:       "POST",
 		JSONBody:     withKey,
 		DoNotEncrypt: true,
 		JSONResponse: authResp,
 	}
-	if _, err := client.Do(req); err != nil {
-		if v, ok := err.(*APIError); ok && v.HttpResponse.StatusCode == 401 {
-			return res, AuthDeniedError
-		} else {
-			return res, err
+	if _, err := c.Do(req); err != nil {
+		if v, ok := err.(*APIError); ok && v.HTTPResponse.StatusCode == 401 {
+			return res, ErrAuthDenied
 		}
+		return res, err
 	}
 	// Build response from given key
 	res.Request = withKey
@@ -72,38 +99,38 @@ func (a AuthRequest) Auth(client *Client) (AuthResult, error) {
 	return res, nil
 }
 
+// IsValidToken checks if the current Client.Conf information is valid to access the API. See
+// https://maidsafe.readme.io/docs/is-token-valid for more information.
 func (c *Client) IsValidToken() (bool, error) {
 	if c.Conf.Token == "" {
 		return false, nil
 	}
-	req := &ClientRequest{
+	req := &Request{
 		Path:         "/auth",
 		Method:       "GET",
 		DoNotEncrypt: true,
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		if v, ok := err.(*APIError); ok && v.HttpResponse.StatusCode == 401 {
+		if v, ok := err.(*APIError); ok && v.HTTPResponse.StatusCode == 401 {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 	return resp.StatusCode == 200, nil
 }
 
-func (c *Client) EnsureAuthed(app AuthApp, permissions ...string) error {
+// EnsureAuthed checks Client.IsValidToken and if false runs Client.Auth after clearing existing information from
+// Client.Conf. It autopopulates Client.Conf.Token, Client.Conf.SharedKey, and Client.Conf.Nonce if the current
+// Client.Conf is not valid.
+func (c *Client) EnsureAuthed(ai AuthInfo) error {
 	if valid, err := c.IsValidToken(); err != nil {
 		return err
 	} else if !valid {
 		c.Conf.Token = ""
 		c.Conf.SharedKey = nil
 		c.Conf.Nonce = nil
-		req := AuthRequest{
-			App:         app,
-			Permissions: permissions,
-		}
-		resp, err := req.Auth(c)
+		resp, err := c.Auth(ai)
 		if err != nil {
 			return err
 		}
@@ -120,7 +147,7 @@ type authResponse struct {
 	PublicKey    []byte `json:"publicKey"`
 }
 
-func (a AuthRequest) applyResponseToResult(resp *authResponse, res *AuthResult) error {
+func (a AuthInfo) applyResponseToResult(resp *authResponse, res *AuthResult) error {
 	var nonce [24]byte
 	copy(nonce[:], a.Nonce)
 	var peerPubKey, privKey [32]byte
