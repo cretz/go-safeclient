@@ -64,7 +64,7 @@ func getClient() (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := ioutil.WriteFile(cfgFile, persistBytes, 600); err != nil {
+	if err := ioutil.WriteFile(cfgFile, persistBytes, 0600); err != nil {
 		return nil, fmt.Errorf("Unable to write config at %v: %v", cfgFile, err)
 	}
 	return c, nil
