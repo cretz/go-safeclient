@@ -12,7 +12,8 @@ will be moved under.**
 
 ## Command Line Interface
 
-The CLI provides the ability to use SAFE from the command line.
+The CLI provides the ability to use SAFE from the command line. Releases for some operating systems may be found in the
+[releases](https://github.com/cretz/go-safeclient/releases) section. Otherwise, follow instructions for building below.
 
 ### Building
 

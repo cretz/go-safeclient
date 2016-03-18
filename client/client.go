@@ -162,7 +162,7 @@ func (c *Client) buildRequest(req *Request) (*http.Request, error) {
 		Header: map[string][]string{},
 	}
 	if c.Logger != nil {
-		c.Logger.Printf("Calling %v %v\n", httpReq.Method, httpReq.URL)
+		c.Logger.Printf("Calling %v %v", httpReq.Method, httpReq.URL)
 	}
 
 	// If there is a body, handle it
@@ -174,7 +174,7 @@ func (c *Client) buildRequest(req *Request) (*http.Request, error) {
 	}
 	if req.RawBody != nil {
 		if c.Logger != nil {
-			c.Logger.Printf("REQ BODY: %v\n", string(req.RawBody))
+			c.Logger.Printf("REQ BODY: %v", string(req.RawBody))
 		}
 		// Encrypt if necessary
 		if req.DoNotEncrypt {
@@ -249,7 +249,7 @@ func (c *Client) handleResponse(resp *http.Response, decrypt bool, jsonResponse 
 		if err != nil {
 			panic(err)
 		}
-		c.Logger.Printf("RESP BODY: %v\n", string(byts))
+		c.Logger.Printf("RESP BODY: %v", string(byts))
 		resp.Body = ioutil.NopCloser(bytes.NewReader(byts))
 	}
 	// We consider non-200 as a failure
