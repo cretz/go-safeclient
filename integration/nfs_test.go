@@ -66,7 +66,7 @@ func checkDirFunctions(t *testing.T, baseDir client.CreateDirInfo, shared bool, 
 	require.Equal(t, foundDir.CreatedOn, foundDir.ModifiedOn)
 	require.WithinDuration(t, time.Now(), foundDir.CreatedOn.Time(), 10*time.Second)
 
-	// Grab just this directory and make sure it has not files and it's the exact same as what we had above
+	// Grab just this directory and make sure it has no files and it's the exact same as what we had above
 	getDir, err = safeClient.GetDir(client.GetDirInfo{DirPath: baseDir.DirPath, Shared: shared})
 	require.NoError(t, err)
 	require.Empty(t, getDir.Files)

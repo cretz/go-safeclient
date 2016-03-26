@@ -12,11 +12,14 @@ import (
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 )
 
 var safeClient *client.Client
 
 func TestMain(m *testing.M) {
+	// Re-randomize each test
+	rand.Seed(time.Now().UTC().UnixNano())
 	// If we have a integration.conf.json, use that
 	var conf client.Conf
 	if _, err := os.Stat("integration.conf.json"); !os.IsNotExist(err) {
@@ -39,7 +42,7 @@ func TestMain(m *testing.M) {
 	err := safeClient.EnsureAuthed(client.AuthInfo{
 		App: client.AuthAppInfo{
 			Name:    "SAFE Client Integration Tests",
-			ID:      "go-safeclient-tests.cretz.github.com",
+			ID:      "go-safeclient-tests80.cretz.github.com",
 			Version: "0.0.1",
 			Vendor:  "cretz",
 		},

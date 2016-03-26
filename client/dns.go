@@ -168,7 +168,6 @@ type DNSAddServiceInfo struct {
 // because it expects the name to already exist. This is not documented, see https://maidsafe.atlassian.net/browse/CS-60
 // for more info.
 func (c *Client) DNSAddService(das DNSAddServiceInfo) error {
-	// TODO: broken?
 	req := &Request{
 		Path:     "/dns",
 		Method:   "PUT",

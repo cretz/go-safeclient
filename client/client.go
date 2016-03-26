@@ -128,6 +128,9 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	if c.Logger != nil {
+		c.Logger.Printf("Calling %v %v", httpReq.Method, httpReq.URL)
+	}
 	httpResp, err := c.HTTPClient.Do(httpReq)
 	if err != nil {
 		return nil, err
@@ -161,9 +164,6 @@ func (c *Client) buildRequest(req *Request) (*http.Request, error) {
 		URL:    fullURL,
 		Header: map[string][]string{},
 	}
-	if c.Logger != nil {
-		c.Logger.Printf("Calling %v %v", httpReq.Method, httpReq.URL)
-	}
 
 	// If there is a body, handle it
 	if req.JSONBody != nil {
@@ -195,7 +195,7 @@ func (c *Client) buildRequest(req *Request) (*http.Request, error) {
 
 	// If there is a token, use it as the bearer token
 	if c.Conf.Token != "" && !req.DoNotAuth {
-		httpReq.Header["authorization"] = []string{"Bearer " + c.Conf.Token}
+		httpReq.Header["Authorization"] = []string{"Bearer " + c.Conf.Token}
 	}
 
 	// Encrypt the query string if necessary
@@ -212,6 +212,7 @@ func (c *Client) buildRequest(req *Request) (*http.Request, error) {
 var doNotDecryptResponses = map[int]string{
 	200: "OK",
 	202: "Accepted",
+	401: "Unauthorized",
 	500: "Server Error",
 }
 
